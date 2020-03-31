@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './RoutingMap.css';
 import mapboxgl from 'mapbox-gl';
+import MapboxDirections from '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions'
+import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css'
 import Tooltip from './RoadTooltip.js'
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoidGNhcm5lcyIsImEiOiI4SnZsSU93In0.-HxSBuQgYtltYG86SvN2mg';
@@ -13,14 +15,18 @@ export default class RoutingMap extends React.Component {
   constructor(props) {
     super(props);
     this.mapRef = React.createRef();
+    this.rangeInput = React.createRef();
+    this.map = {};
+    this.tooltipContainer = {};
     this.state = {
       lng: -79.4512,
       lat: 43.6568,
       zoom: 13,
       minzoom: 5,
-      maxzoom: 12
+      maxzoom: 12,
+      trafficLevel: 0
     };
-  }
+  };
 
   setTooltip(features) {
     if(features.length) {
@@ -34,33 +40,127 @@ export default class RoutingMap extends React.Component {
     } else {
       ReactDOM.unmountComponentAtNode(this.tooltipContainer);
     }
+  };
+
+  handleChange(evt) {
+    evt.preventDefault();
+    const value = evt.target.value;
+    this.setState({ trafficLevel: value });
+
+    const servers = ['traffic', 'driving', 'pedestrian', 'cycling'];
+    const profiles = document.querySelectorAll(
+      'input[type="radio"]'
+    )
+    profiles[0].parentElement.style.width = (74 * servers.length + 4) + 'px';
+    const trafficDispatch = this.rangeInput.current;
+    profiles.forEach((profile, index) => {
+      if (index < servers.length) {
+        profile.labels[0].innerHTML = servers[index];
+        profile.value = servers[index] + '/' + trafficDispatch.value;
+        profile.labels[0].style.width = '74px';
+      } else {
+        profile.labels[0].remove();
+        profile.remove();
+      }
+    });
+    profiles[0].checked = true;
+
+    const dispatchEvent = new Event('change');
+    trafficDispatch.dispatchEvent(dispatchEvent);
+
+    this.map.setPaintProperty('road-network', 'line-color', [
+      'interpolate',
+      ['linear'],
+      ['to-number', ['coalesce', ['get', 'maxspeed' + evt + ':forward'], ['get', 'maxspeed' + evt + ':backward']]],
+      0,
+      'red',
+      24,
+      'yellow',
+      48,
+      'lime',
+      72,
+      'cyan',
+      96,
+      'royalblue',
+      120,
+      'blue'
+    ])
   }
 
   componentDidMount() {
+    const host_url = window.location.href.replace(/#.*/, '')
 
     //container to put React generated content in
     this.tooltipContainer = document.createElement('div');
-    const mapContainer = this.mapRef.current;
+
     this.map = new mapboxgl.Map({
       hash: 'map',
-      container: mapContainer,
+      container: this.mapRef.current,
       style: STYLE_ROAD_MAP,
-      center: [this.state.lng, this.state.lat],
-      zoom: this.zoom
+      center: [-79.4512, 43.6568],
+      zoom: 13
     });
 
-    const road_link_info = new mapboxgl.Marker(this.tooltipContainer,{
+    this.map.on('load', () => {
+      
+			this.map.addSource('roads', {
+				type: 'vector',
+				tiles: [host_url + "tile/{z}/{x}/{y}.pbf"],
+				minzoom: 5,
+				maxzoom: 12
+      })
+
+			this.map.addLayer({
+				'id': 'road-network',
+				'type': 'line',
+				'source': 'roads',
+				'source-layer': 'roads',
+				'layout': {
+					'line-join': 'round',
+					'line-cap': 'round'
+				},
+				'paint': {
+					'line-color': [
+						'case',
+						['boolean', ['feature-state', 'hover'], false],
+						'black',
+						[
+							'interpolate',
+							['linear'],
+							['to-number', ['coalesce', ['get', 'maxspeed0:forward'], ['get', 'maxspeed0:backward']]],
+							0,
+							'red',
+							24,
+							'yellow',
+							48,
+							'lime',
+							72,
+							'cyan',
+							96,
+							'royalblue',
+							120,
+							'blue'
+						]
+					],
+					'line-width': 5,
+					'line-blur': 1,
+					'line-opacity': 0.8
+				}
+      }, 'road-label')
+
+    })
+    
+    const tooltip = new mapboxgl.Marker(this.tooltipContainer, {
       offset: [-120, 0]
     }).setLngLat([0,0]).addTo(this.map);
 
     this.map.on('mousemove', (e) => {
       const features = this.map.queryRenderedFeatures(e.point);
-      road_link_info.setLngLat(e.lngLat);
+      tooltip.setLngLat(e.lngLat);
       this.map.getCanvas().style.cursor = features.length ? 'pointer' : '';
       this.setTooltip(features);
-    })
+    });
 
-    const MapboxDirections = window.MapboxDirections
     this.map.addControl(
       new MapboxDirections({
         accessToken: MAPBOX_ACCESS_TOKEN
@@ -68,9 +168,9 @@ export default class RoutingMap extends React.Component {
       'top-left'
     );
   };
-
-  __change_traffic(value) {
-
+  
+  componentWillUnmount() {
+    this.map.remove();
   }
 
   render() {
@@ -88,15 +188,16 @@ export default class RoutingMap extends React.Component {
             <h3>Traffic</h3>
             <input
               type="range"
+              ref={this.rangeInput}
               className="traffic-window"
               name="traffic-window"
               min="0"
               max="7"
               list="tickmarks"
               defaultValue="0"
-              onInput={this.__change_traffic(this.value)}
+              onChange={event => this.handleChange(event)}
             />
-            <label htmlFor="traffic-window">0</label>
+            <label htmlFor="traffic-window">{this.state.trafficLevel}</label>
           </div>
         </div>
         <datalist id="tickmarks">
@@ -111,5 +212,5 @@ export default class RoutingMap extends React.Component {
         </datalist>
       </div>
     );
-  }
+  };
 }
