@@ -4,7 +4,7 @@ import './RoutingMap.css';
 import mapboxgl from 'mapbox-gl';
 import Tooltip from './RoadTooltip.js'
 
-const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoidGNhcm5lcyIsImEiOiI4SnZsSU93In0.-HxSBuQgYtltYG86SvN2mg';
+const MAPBOX_ACCESS_TOKEN = '';
 mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 const STYLE_ROAD_MAP = 'mapbox://styles/mapbox/streets-v11';
 
