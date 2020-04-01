@@ -6,7 +6,7 @@ import MapboxDirections from '@mapbox/mapbox-gl-directions/dist/mapbox-gl-direct
 import '@mapbox/mapbox-gl-directions/dist/mapbox-gl-directions.css'
 import Tooltip from './RoadTooltip.js'
 
-const MAPBOX_ACCESS_TOKEN = '';
+const MAPBOX_ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 const STYLE_ROAD_MAP = 'mapbox://styles/mapbox/streets-v11';
 
