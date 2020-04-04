@@ -1,13 +1,13 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React from "react";
+import PropTypes from "prop-types";
 
 export default class TrafficPanel extends React.Component {
     static propTypes = {
         features: PropTypes.array.isRequired,
-        map: PropTypes.object
+        map: PropTypes.object.isRequired
     };
 
-    getInitialState = () => ({ hover: null })
+    getInitialState = () => ({ hover: null });
 
     _onMouseMove(evt) {
         evt.preventDefault();
@@ -18,30 +18,43 @@ export default class TrafficPanel extends React.Component {
 
         //mouseMove event function
         if (this.state.hover) {
-            this.props.map.on('mousemove', 'road-network', (e) => {
+            this.props.map.on("mousemove", "road-network", (e) => {
                 if (e.features.length > 0) {
-                    this.props.map.getCanvas().style.cursor = 'pointer'
-        
-                    let road = e.features[0]
-                    let info = '<p><strong>id:</strong> ' + road.id + '</p>'
+                    this.props.map.getCanvas().style.cursor = "pointer";
+
+                    let road = e.features[0];
+                    let info = "<p><strong>id:</strong> " + road.id + "</p>";
                     for (const p in road.properties) {
-                        info += '<p><strong>' + p + ':</strong> ' + road.properties[p] + '</p>'
+                        info +=
+                            "<p><strong>" +
+                            p +
+                            ":</strong> " +
+                            road.properties[p] +
+                            "</p>";
                     }
-                    document.getElementById('info').innerHTML = info
-        
+                    document.getElementById("info").innerHTML = info;
+
                     if (this.state.hover) {
                         this.props.map.setFeatureState(
-                            { source: 'roads', sourceLayer: 'roads', id: this.state.hover },
+                            {
+                                source: "roads",
+                                sourceLayer: "roads",
+                                id: this.state.hover
+                            },
                             { hover: false }
-                        )
+                        );
                     }
                     this.setState({ hover: road.id });
                     this.props.map.setFeatureState(
-                        { source: 'roads', sourceLayer: 'roads', id: this.state.hover },
+                        {
+                            source: "roads",
+                            sourceLayer: "roads",
+                            id: this.state.hover
+                        },
                         { hover: true }
-                    )
+                    );
                 }
-            })
+            });
         }
     }
 
@@ -49,39 +62,55 @@ export default class TrafficPanel extends React.Component {
         evt.preventDefault();
         //mouseLeave event function
 
-        this.props.map.on('mouseleave', 'road-network', function () {
-            this.props.map.getCanvas().style.cursor = '';
+        this.props.map.on("mouseleave", "road-network", function() {
+            this.props.map.getCanvas().style.cursor = "";
             if (this.state.hover) {
                 this.props.map.setFeatureState(
-                    { source: 'roads', sourceLayer: 'roads', id: this.state.hover },
+                    {
+                        source: "roads",
+                        sourceLayer: "roads",
+                        id: this.state.hover
+                    },
                     { hover: false }
-                )
+                );
             }
-            this.setState({ hover: null })
-        })
+            this.setState({ hover: null });
+        });
     }
 
-    // update the component's state to reflect whether the mouse is inside the component 
-    // then use the state value to conditionally render a 
+    // update the component's state to reflect whether the mouse is inside the component
+    // then use the state value to conditionally render a
     // <div className="info">Traffic Network Panel</div> component
     render() {
         const { features } = this.props;
         const renderInfo = (feature, index) => {
             return (
-                <div key={index} onMouseMove = {(event) => this._onMouseMove(event, this.state.hover)}>
-                    <p><strong>{'id:'}</strong>{feature}</p>
+                <div
+                    key={index}
+                    onMouseMove={(event) =>
+                        this._onMouseMove(event, this.state.hover)
+                    }
+                >
+                    <p>
+                        <strong>{"id:"}</strong>
+                        {feature}
+                    </p>
                 </div>
-            )
-        }
-        
+            );
+        };
+        console.log(this.state.hover);
         return (
             <>
-                {
-                    this.state.hover 
-                    ?   features.map(renderInfo)
-                    :   <div>onMouseLeave = {(event) => this._onMouseLeave(event, this.state.hover)}></div>
-                }
+                {this.state.hover ? (
+                    features.map(renderInfo)
+                ) : (
+                    <div>
+                        onMouseLeave ={" "}
+                        {(event) => this._onMouseLeave(event, this.state.hover)}
+                        >
+                    </div>
+                )}
             </>
-        )
+        );
     }
 }
